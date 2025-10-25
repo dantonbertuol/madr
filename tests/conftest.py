@@ -3,10 +3,13 @@ from datetime import datetime
 
 import pytest
 import pytest_asyncio
+from fastapi.testclient import TestClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
+from madr.app import app
+from madr.database import get_session
 from madr.models import Romancista, table_registry
 
 
@@ -41,6 +44,17 @@ async def romancista(session):
     return romancista
 
 
+@pytest_asyncio.fixture
+async def other_romancista(session):
+    romancista = Romancista(nome="Outro Autor Teste")
+
+    session.add(romancista)
+    await session.commit()
+    await session.refresh(romancista)
+
+    return romancista
+
+
 @contextmanager
 def _mock_db_time(*, model, time=datetime(2025, 8, 3)):
     def fake_time_hook(mapper, connection, target):
@@ -59,3 +73,16 @@ def _mock_db_time(*, model, time=datetime(2025, 8, 3)):
 @pytest.fixture
 def mock_db_time():
     return _mock_db_time
+
+
+@pytest.fixture
+def client(session):
+    def get_session_override():
+        return session
+
+    with TestClient(app) as client:
+        app.dependency_overrides[get_session] = get_session_override
+
+        yield client
+
+    app.dependency_overrides.clear()
