@@ -15,9 +15,17 @@ class RomancistaList(BaseModel):
     romancistas: list[RomancistaPublic]
 
 
+class RomancistaUpdate(BaseModel):
+    nome: str | None = None
+
+
 class FilterPage(BaseModel):
     offset: int = 0
-    limit: int = 100
+    limit: int = 20
+
+
+class FilterRomancista(FilterPage):
+    nome: str | None = None
 
 
 class Message(BaseModel):

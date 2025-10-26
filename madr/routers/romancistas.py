@@ -7,23 +7,28 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from madr.database import get_session
 from madr.models import Romancista
-from madr.schemas import FilterPage, Message, RomancistaList, RomancistaPublic, RomancistaSchema
+from madr.schemas import FilterRomancista, Message, RomancistaList, RomancistaPublic, RomancistaSchema, RomancistaUpdate
+from madr.utils import conflict_error, not_found_error, sanitize_string
 
-router = APIRouter(prefix="/romancistas", tags=["romancistas"])
+router = APIRouter(prefix="/romancista", tags=["romancista"])
 
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
+ENTITY: str = "Romancista"
+
 
 @router.post("/", status_code=HTTPStatus.CREATED, response_model=RomancistaPublic)
 async def create_romancista(romancista: RomancistaSchema, session: Session):
+    original_name = romancista.nome
+    romancista.nome = sanitize_string(original_name)
     db_romancista = await session.scalar(select(Romancista).where((Romancista.nome == romancista.nome)))
 
     if db_romancista:
         if db_romancista.nome == romancista.nome:
             raise HTTPException(
                 status_code=HTTPStatus.CONFLICT,
-                detail="Romancista already exists",
+                detail=conflict_error(ENTITY),
             )
 
     db_romancista = Romancista(nome=romancista.nome)
@@ -31,42 +36,52 @@ async def create_romancista(romancista: RomancistaSchema, session: Session):
     await session.commit()
     await session.refresh(db_romancista)
 
+    db_romancista.nome = original_name
+
     return db_romancista
 
 
-@router.get("/", response_model=RomancistaList)
-async def read_romancistas(filter_romancistas: Annotated[FilterPage, Query()], session: Session):
-    query = await session.scalars(select(Romancista).offset(filter_romancistas.offset).limit(filter_romancistas.limit))
-    romancistas = query.all()
-    return {"romancistas": romancistas}
-
-
-@router.get("/{romancista_id}", status_code=HTTPStatus.OK, response_model=RomancistaPublic)
-async def read_romancista(romancista_id: int, session: Session):
-    romancista = await session.scalar(select(Romancista).where(Romancista.id == romancista_id))
+@router.get("/{id}", status_code=HTTPStatus.OK, response_model=RomancistaPublic)
+async def read_romancista(id: int, session: Session):
+    romancista = await session.scalar(select(Romancista).where(Romancista.id == id))
     if not romancista:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Romancista not found")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=not_found_error(ENTITY))
 
     return romancista
 
 
-@router.patch("/{romancista_id}", response_model=RomancistaPublic)
+@router.get("/", status_code=HTTPStatus.OK, response_model=RomancistaList)
+async def read_romancistas_by_name(filter_romancistas: Annotated[FilterRomancista, Query()], session: Session):
+    stmt = select(Romancista).offset(filter_romancistas.offset).limit(filter_romancistas.limit)
+    if filter_romancistas.nome:
+        name = sanitize_string(filter_romancistas.nome)
+        stmt = stmt.where(Romancista.nome.ilike(f"%{name}%"))
+    query = await session.scalars(stmt)
+    romancistas = query.all()
+    return {"romancistas": romancistas}
+
+
+@router.patch("/{id}", response_model=RomancistaPublic)
 async def update_romancista(
-    romancista_id: int,
-    romancista: RomancistaSchema,
+    id: int,
+    romancista: RomancistaUpdate,
     session: Session,
 ):
-    db_romancista = await session.scalar(select(Romancista).where((Romancista.id == romancista_id)))
+    db_romancista = await session.scalar(select(Romancista).where((Romancista.id == id)))
 
     if not db_romancista:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Romancista not found.")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=not_found_error(ENTITY))
+
+    if romancista.nome:
+        original_name = romancista.nome
+        romancista.nome = sanitize_string(original_name)
 
     romancista_by_name = await session.scalar(select(Romancista).where((Romancista.nome) == romancista.nome))
 
     if romancista_by_name:
         raise HTTPException(
             status_code=HTTPStatus.CONFLICT,
-            detail="Romancista already exists",
+            detail=conflict_error(ENTITY),
         )
 
     for key, value in romancista.model_dump(exclude_unset=True).items():
@@ -76,17 +91,19 @@ async def update_romancista(
     await session.commit()
     await session.refresh(db_romancista)
 
+    db_romancista.nome = original_name if original_name else db_romancista.nome
+
     return db_romancista
 
 
-@router.delete("/{romancista_id}", response_model=Message)
+@router.delete("/{id}", response_model=Message)
 async def delete_user(
-    romancista_id: int,
+    id: int,
     session: Session,
 ):
-    db_romancista = await session.scalar(select(Romancista).where((Romancista.id == romancista_id)))
+    db_romancista = await session.scalar(select(Romancista).where((Romancista.id == id)))
     if not db_romancista:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Romancista not found.")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=not_found_error(ENTITY))
 
     await session.delete(db_romancista)
 

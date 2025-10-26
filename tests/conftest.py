@@ -11,6 +11,7 @@ from testcontainers.postgres import PostgresContainer
 from madr.app import app
 from madr.database import get_session
 from madr.models import Romancista, table_registry
+from madr.utils import sanitize_string
 
 
 @pytest.fixture(scope="session")
@@ -35,7 +36,8 @@ async def session(engine):
 
 @pytest_asyncio.fixture
 async def romancista(session):
-    romancista = Romancista(nome="Autor Teste")
+    name = sanitize_string("Autor Teste")
+    romancista = Romancista(nome=name)
 
     session.add(romancista)
     await session.commit()
@@ -46,7 +48,8 @@ async def romancista(session):
 
 @pytest_asyncio.fixture
 async def other_romancista(session):
-    romancista = Romancista(nome="Outro Autor Teste")
+    name = sanitize_string("Outro Autor Teste")
+    romancista = Romancista(nome=name)
 
     session.add(romancista)
     await session.commit()
