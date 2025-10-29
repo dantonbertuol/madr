@@ -3,10 +3,12 @@ import re
 
 def sanitize_string(string: str) -> str:
     # Remove pontuação
-    result = re.sub(r"[^\w\s]", "", string)
-    # Remove espaços extras e converte para minúsculas
-    result = " ".join(result.split()).lower()
-    return result
+    if string:
+        result = re.sub(r"[^\w\s]", "", string)
+        # Remove espaços extras e converte para minúsculas
+        result = " ".join(result.split()).lower()
+        return result
+    return string
 
 
 def auth_error() -> str:

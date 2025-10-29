@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from madr.database import get_session
 from madr.models import Romancista
+from madr.routers.contas import CurrentUser
 from madr.schemas import FilterRomancista, Message, RomancistaList, RomancistaPublic, RomancistaSchema, RomancistaUpdate
 from madr.utils import conflict_error, not_found_error, sanitize_string
 
@@ -19,7 +20,7 @@ ENTITY: str = "Romancista"
 
 
 @router.post("/", status_code=HTTPStatus.CREATED, response_model=RomancistaPublic)
-async def create_romancista(romancista: RomancistaSchema, session: Session):
+async def create_romancista(romancista: RomancistaSchema, session: Session, user: CurrentUser):
     original_name = romancista.nome
     romancista.nome = sanitize_string(original_name)
     db_romancista = await session.scalar(select(Romancista).where((Romancista.nome == romancista.nome)))
@@ -62,11 +63,7 @@ async def read_romancistas_by_name(filter_romancistas: Annotated[FilterRomancist
 
 
 @router.patch("/{id}", response_model=RomancistaPublic)
-async def update_romancista(
-    id: int,
-    romancista: RomancistaUpdate,
-    session: Session,
-):
+async def update_romancista(id: int, romancista: RomancistaUpdate, session: Session, user: CurrentUser):
     db_romancista = await session.scalar(select(Romancista).where((Romancista.id == id)))
 
     if not db_romancista:
@@ -97,10 +94,7 @@ async def update_romancista(
 
 
 @router.delete("/{id}", response_model=Message)
-async def delete_user(
-    id: int,
-    session: Session,
-):
+async def delete_user(id: int, session: Session, user: CurrentUser):
     db_romancista = await session.scalar(select(Romancista).where((Romancista.id == id)))
     if not db_romancista:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=not_found_error(ENTITY))

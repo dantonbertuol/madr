@@ -8,7 +8,9 @@ dependencies = [
     "alembic==1.17.0",
     "fastapi[standard]==0.120.0",
     "psycopg[binary]==3.2.11",
+    "pwdlib[argon2]>=0.3.0",
     "pydantic-settings==2.11.0",
+    "pyjwt>=2.10.1",
     "sqlalchemy[asyncio]==2.0.44",
 ]
 
