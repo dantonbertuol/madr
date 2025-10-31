@@ -1,9 +1,8 @@
 from http import HTTPStatus
 
+from madr.routers.livros import ENTITY
 from madr.schemas import LivroPublic
-from madr.utils import conflict_error, not_found_error, sanitize_string
-
-ENTITY: str = "Livro"
+from madr.utils import conflict_error, deleted_message, not_found_error, sanitize_string
 
 
 def test_create_livro(client, token, romancista):
@@ -58,7 +57,7 @@ def test_read_livro(client, livro):
         "ano": livro.ano,
         "titulo": livro.titulo,
         "id_romancista": livro.id_romancista,
-        "id": livro.id
+        "id": livro.id,
     }
 
 
@@ -113,7 +112,7 @@ def test_delete_livro(client, livro, token):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"message": "Livro deleted"}
+    assert response.json() == deleted_message(ENTITY)
 
 
 def test_delete_livro_not_found(client, livro, token):

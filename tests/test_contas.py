@@ -3,7 +3,8 @@ from http import HTTPStatus
 import pytest
 from freezegun import freeze_time
 
-from madr.utils import auth_error, permission_error
+from madr.routers.contas import ENTITY
+from madr.utils import auth_error, deleted_message, permission_error
 
 
 def test_create_user(client):
@@ -88,7 +89,7 @@ def test_delete_user(client, user, token):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"message": "User deleted"}
+    assert response.json() == deleted_message(ENTITY)
 
 
 def test_update_user_with_wrong_user(client, other_user, token):

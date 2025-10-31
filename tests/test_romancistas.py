@@ -1,9 +1,8 @@
 from http import HTTPStatus
 
+from madr.routers.romancistas import ENTITY
 from madr.schemas import RomancistaPublic
-from madr.utils import conflict_error, not_found_error, sanitize_string
-
-ENTITY: str = "Romancista"
+from madr.utils import conflict_error, deleted_message, not_found_error, sanitize_string
 
 
 def teste_create_romancista(client, token):
@@ -107,7 +106,7 @@ def test_delete_romancista(client, romancista, token):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"message": "Romancista deleted"}
+    assert response.json() == deleted_message(ENTITY)
 
 
 def test_delete_romancista_not_found(client, romancista, token):

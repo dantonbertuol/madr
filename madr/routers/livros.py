@@ -9,7 +9,7 @@ from madr.database import get_session
 from madr.models import Livro
 from madr.routers.contas import CurrentUser
 from madr.schemas import FilterLivro, LivroList, LivroPublic, LivroSchema, LivroUpdate, Message
-from madr.utils import conflict_error, not_found_error, sanitize_string
+from madr.utils import conflict_error, deleted_message, not_found_error, sanitize_string
 
 router = APIRouter(prefix="/livro", tags=["livro"])
 
@@ -21,6 +21,20 @@ ENTITY: str = "Livro"
 
 @router.post("/", status_code=HTTPStatus.CREATED, response_model=LivroPublic)
 async def create_livro(livro: LivroSchema, session: Session, user: CurrentUser):
+    """
+    Cria um novo livro no banco de dados após validar que o título é único.
+
+    Args:
+        livro (LivroSchema): Dados do livro contendo título, ano e id do romancista.
+        session (Session): Sessão do banco utilizada para consultas e commits.
+        user (User): Usuário autenticado realizando a operação.
+
+    Returns:
+        Livro: O objeto do livro recém-criado.
+
+    Raises:
+        HTTPException: Se o título já existir no banco de dados.
+    """
     livro.titulo = sanitize_string(livro.titulo)
     db_livro = await session.scalar(select(Livro).where((Livro.titulo == livro.titulo)))
 
@@ -41,6 +55,19 @@ async def create_livro(livro: LivroSchema, session: Session, user: CurrentUser):
 
 @router.get("/{id}", status_code=HTTPStatus.OK, response_model=LivroPublic)
 async def read_livro(id: int, session: Session):
+    """
+    Busca um livro pelo seu ID.
+
+    Args:
+        id (int): ID do livro a ser buscado.
+        session (Session): Sessão do banco utilizada para consulta.
+
+    Returns:
+        Livro: O objeto do livro encontrado.
+
+    Raises:
+        HTTPException: Se o livro não for encontrado.
+    """
     livro = await session.scalar(select(Livro).where(Livro.id == id))
     if not livro:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=not_found_error(ENTITY))
@@ -50,6 +77,16 @@ async def read_livro(id: int, session: Session):
 
 @router.get("/", status_code=HTTPStatus.OK, response_model=LivroList)
 async def read_livro_by_name_year(filter_livros: Annotated[FilterLivro, Query()], session: Session):
+    """
+    Busca livros filtrando por título parcial e/ou ano, com paginação.
+
+    Args:
+        filter_livros (FilterLivro): Filtros de busca (título, ano, offset, limit).
+        session (Session): Sessão do banco utilizada para consulta.
+
+    Returns:
+        dict: Lista de livros encontrados.
+    """
     stmt = select(Livro).offset(filter_livros.offset).limit(filter_livros.limit)
 
     if filter_livros.titulo:
@@ -66,6 +103,21 @@ async def read_livro_by_name_year(filter_livros: Annotated[FilterLivro, Query()]
 
 @router.patch("/{id}", response_model=LivroPublic)
 async def update_livro(id: int, livro: LivroUpdate, session: Session, user: CurrentUser):
+    """
+    Atualiza os dados de um livro existente, permitindo alteração de título, ano e romancista.
+
+    Args:
+        id (int): ID do livro a ser atualizado.
+        livro (LivroUpdate): Novos dados do livro.
+        session (Session): Sessão do banco utilizada para persistência.
+        user (User): Usuário autenticado realizando a operação.
+
+    Returns:
+        Livro: O objeto do livro atualizado.
+
+    Raises:
+        HTTPException: Se o livro não for encontrado ou se o título já existir.
+    """
     db_livro = await session.scalar(select(Livro).where((Livro.id == id)))
 
     if not db_livro:
@@ -94,6 +146,20 @@ async def update_livro(id: int, livro: LivroUpdate, session: Session, user: Curr
 
 @router.delete("/{id}", response_model=Message)
 async def delete_livro(id: int, session: Session, user: CurrentUser):
+    """
+    Remove um livro do banco de dados pelo seu ID.
+
+    Args:
+        id (int): ID do livro a ser removido.
+        session (Session): Sessão do banco utilizada para persistência.
+        user (User): Usuário autenticado realizando a operação.
+
+    Returns:
+        dict: Mensagem de confirmação da remoção.
+
+    Raises:
+        HTTPException: Se o livro não for encontrado.
+    """
     db_livro = await session.scalar(select(Livro).where((Livro.id == id)))
     if not db_livro:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=not_found_error(ENTITY))
@@ -102,4 +168,4 @@ async def delete_livro(id: int, session: Session, user: CurrentUser):
 
     await session.commit()
 
-    return {"message": "Livro deleted"}
+    return deleted_message(ENTITY)
