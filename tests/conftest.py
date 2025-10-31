@@ -11,7 +11,7 @@ from testcontainers.postgres import PostgresContainer
 
 from madr.app import app
 from madr.database import get_session
-from madr.models import Romancista, User, table_registry
+from madr.models import Livro, Romancista, User, table_registry
 from madr.security import get_password_hash
 from madr.utils import sanitize_string
 
@@ -137,3 +137,27 @@ def token(client, user):
         data={"username": user.email, "password": user.clean_password},
     )
     return response.json()["access_token"]
+
+
+@pytest_asyncio.fixture
+async def livro(session, romancista):
+    titulo = sanitize_string("Minha nossa senhora, aconteceu de novo ")
+    livro = Livro(titulo=titulo, ano=2025, id_romancista=romancista.id)
+
+    session.add(livro)
+    await session.commit()
+    await session.refresh(livro)
+
+    return livro
+
+
+@pytest_asyncio.fixture
+async def other_livro(session, romancista):
+    titulo = sanitize_string("The life snake")
+    livro = Livro(titulo=titulo, ano=2025, id_romancista=romancista.id)
+
+    session.add(livro)
+    await session.commit()
+    await session.refresh(livro)
+
+    return livro

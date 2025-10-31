@@ -63,7 +63,6 @@ async def test_create_livro(session, romancista, mock_db_time):
         "ano": 2023,
         "titulo": "Test Livro",
         "id_romancista": romancista.id,
-        "romancista": asdict(romancista),
         "created_at": time,
         "updated_at": time,
     }

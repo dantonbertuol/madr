@@ -21,8 +21,7 @@ ENTITY: str = "Romancista"
 
 @router.post("/", status_code=HTTPStatus.CREATED, response_model=RomancistaPublic)
 async def create_romancista(romancista: RomancistaSchema, session: Session, user: CurrentUser):
-    original_name = romancista.nome
-    romancista.nome = sanitize_string(original_name)
+    romancista.nome = sanitize_string(romancista.nome)
     db_romancista = await session.scalar(select(Romancista).where((Romancista.nome == romancista.nome)))
 
     if db_romancista:
@@ -36,8 +35,6 @@ async def create_romancista(romancista: RomancistaSchema, session: Session, user
     session.add(db_romancista)
     await session.commit()
     await session.refresh(db_romancista)
-
-    db_romancista.nome = original_name
 
     return db_romancista
 
@@ -70,8 +67,7 @@ async def update_romancista(id: int, romancista: RomancistaUpdate, session: Sess
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=not_found_error(ENTITY))
 
     if romancista.nome:
-        original_name = romancista.nome
-        romancista.nome = sanitize_string(original_name)
+        romancista.nome = sanitize_string(romancista.nome)
 
     romancista_by_name = await session.scalar(select(Romancista).where((Romancista.nome) == romancista.nome))
 
@@ -88,13 +84,11 @@ async def update_romancista(id: int, romancista: RomancistaUpdate, session: Sess
     await session.commit()
     await session.refresh(db_romancista)
 
-    db_romancista.nome = original_name if original_name else db_romancista.nome
-
     return db_romancista
 
 
 @router.delete("/{id}", response_model=Message)
-async def delete_user(id: int, session: Session, user: CurrentUser):
+async def delete_romancista(id: int, session: Session, user: CurrentUser):
     db_romancista = await session.scalar(select(Romancista).where((Romancista.id == id)))
     if not db_romancista:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=not_found_error(ENTITY))

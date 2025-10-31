@@ -52,3 +52,29 @@ class UserDB(UserSchema):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class LivroSchema(BaseModel):
+    ano: int
+    titulo: str
+    id_romancista: int
+
+
+class LivroPublic(LivroSchema):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FilterLivro(FilterPage):
+    titulo: str | None = None
+    ano: int | None = None
+
+
+class LivroList(BaseModel):
+    livros: list[LivroPublic]
+
+
+class LivroUpdate(BaseModel):
+    ano: int | None = None
+    titulo: str | None = None

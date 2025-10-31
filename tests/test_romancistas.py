@@ -6,11 +6,12 @@ from madr.utils import conflict_error, not_found_error, sanitize_string
 ENTITY: str = "Romancista"
 
 
-def teste_create_romancista(client):
+def teste_create_romancista(client, token):
     name = sanitize_string("danton")
     response = client.post(
         "/romancista",
         json={"nome": name},
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == HTTPStatus.CREATED
     assert response.json() == {
@@ -19,12 +20,11 @@ def teste_create_romancista(client):
     }
 
 
-def test_create_romancista_nome_already_exist(client, romancista):
+def test_create_romancista_nome_already_exist(client, romancista, token):
     response = client.post(
         "/romancista",
-        json={
-            "nome": romancista.nome,
-        },
+        json={"nome": romancista.nome},
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == HTTPStatus.CONFLICT
     assert response.json() == {"detail": conflict_error(ENTITY)}
@@ -65,13 +65,12 @@ def test_read_romancista_not_found(client, romancista):
     assert response.json() == {"detail": not_found_error(ENTITY)}
 
 
-def test_update_romancista(client, romancista):
+def test_update_romancista(client, romancista, token):
     name = sanitize_string("bob")
     response = client.patch(
         f"/romancista/{romancista.id}",
-        json={
-            "nome": name,
-        },
+        json={"nome": name},
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {
@@ -80,42 +79,39 @@ def test_update_romancista(client, romancista):
     }
 
 
-def test_update_romancista_integrity_error(client, romancista, other_romancista):
+def test_update_romancista_integrity_error(client, romancista, other_romancista, token):
     response_update = client.patch(
         f"/romancista/{romancista.id}",
-        json={
-            "nome": other_romancista.nome,
-        },
+        json={"nome": other_romancista.nome},
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response_update.status_code == HTTPStatus.CONFLICT
     assert response_update.json() == {"detail": conflict_error(ENTITY)}
 
 
-def test_update_romancista_not_found(client, romancista):
+def test_update_romancista_not_found(client, romancista, token):
     response_update = client.patch(
         "/romancista/9999",
-        json={
-            "nome": romancista.nome,
-        },
+        json={"nome": romancista.nome},
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response_update.status_code == HTTPStatus.NOT_FOUND
     assert response_update.json() == {"detail": not_found_error(ENTITY)}
 
 
-def test_delete_romancista(client, romancista):
+def test_delete_romancista(client, romancista, token):
     response = client.delete(
         f"/romancista/{romancista.id}",
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"message": "Romancista deleted"}
 
 
-def test_delete_romancista_not_found(client, romancista):
-    response_update = client.delete(
-        "/romancista/9999",
-    )
+def test_delete_romancista_not_found(client, romancista, token):
+    response_update = client.delete("/romancista/9999", headers={"Authorization": f"Bearer {token}"})
 
     assert response_update.status_code == HTTPStatus.NOT_FOUND
     assert response_update.json() == {"detail": not_found_error(ENTITY)}

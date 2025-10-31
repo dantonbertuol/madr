@@ -15,9 +15,7 @@ class Romancista:
     created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now(), onupdate=func.now())
 
-    livros: Mapped[list["Livro"]] = relationship(
-        init=False, cascade="all, delete-orphan", lazy="selectin", back_populates="romancista"
-    )
+    livros: Mapped[list["Livro"]] = relationship(init=False, cascade="all, delete-orphan", lazy="selectin")
 
 
 @table_registry.mapped_as_dataclass
@@ -30,8 +28,6 @@ class Livro:
 
     created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now(), onupdate=func.now())
-
-    romancista: Mapped["Romancista"] = relationship(init=False, lazy="joined", back_populates="livros")
 
 
 @table_registry.mapped_as_dataclass
