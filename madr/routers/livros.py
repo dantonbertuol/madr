@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from madr.database import get_session
-from madr.models import Livro
+from madr.models import Livro, Romancista
 from madr.routers.contas import CurrentUser
 from madr.schemas import FilterLivro, LivroList, LivroPublic, LivroSchema, LivroUpdate, Message
 from madr.utils import conflict_error, deleted_message, not_found_error, sanitize_string
@@ -37,6 +37,13 @@ async def create_livro(livro: LivroSchema, session: Session, user: CurrentUser):
     """
     livro.titulo = sanitize_string(livro.titulo)
     db_livro = await session.scalar(select(Livro).where((Livro.titulo == livro.titulo)))
+    db_romancista = await session.scalar(select(Romancista).where(Romancista.id == livro.id_romancista))
+
+    if not db_romancista:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=not_found_error("Romancista"),
+        )
 
     if db_livro:
         if db_livro.titulo == livro.titulo:

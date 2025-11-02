@@ -31,6 +31,17 @@ def test_create_livro_titulo_already_exist(client, romancista, token, livro):
     assert response.json() == {"detail": conflict_error(ENTITY)}
 
 
+def test_create_livro_romancista_not_found(client, token, romancista):
+    titulo = sanitize_string("A volta dos que não foram")
+    response = client.post(
+        "/livro",
+        json={"titulo": titulo, "ano": 2024, "id_romancista": 999},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {"detail": not_found_error("Romancista")}
+
+
 def test_read_livros(client):
     response = client.get("/livro")
     assert response.status_code == HTTPStatus.OK
